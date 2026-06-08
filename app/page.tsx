@@ -1,65 +1,91 @@
-import Image from "next/image";
+import Link from "next/link";
+import { Activity, Brain, ClipboardList } from "lucide-react";
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-[#0a0f1e] text-white flex flex-col">
+      {/* Nav */}
+      <nav className="flex items-center justify-between px-6 md:px-12 py-5 border-b border-white/5">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-full bg-[#00c27a] flex items-center justify-center">
+            <Activity size={14} className="text-white" />
+          </div>
+          <span className="font-semibold text-white tracking-tight text-lg">BeforeMed</span>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="flex items-center gap-3">
+          <Link href="/login" className="text-sm text-white/60 hover:text-white transition-colors px-4 py-2">
+            Log in
+          </Link>
+          <Link href="/signup" className="text-sm bg-[#00c27a] hover:bg-[#00a868] text-white font-medium px-4 py-2 rounded-lg transition-colors">
+            Start Free
+          </Link>
         </div>
+      </nav>
+
+      {/* Hero */}
+      <main className="flex-1 flex flex-col items-center justify-center px-6 text-center py-24">
+        <div className="inline-flex items-center gap-2 bg-[#00c27a]/10 border border-[#00c27a]/20 text-[#00c27a] text-xs font-medium px-3 py-1.5 rounded-full mb-8">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#00c27a] inline-block"></span>
+          Built for high school students exploring medicine
+        </div>
+
+        <h1 className="text-4xl md:text-6xl font-bold text-white leading-tight max-w-3xl mb-6">
+          Know if medicine is{" "}
+          <span className="text-[#00c27a]">right for you</span>
+          {" "}before you commit.
+        </h1>
+
+        <p className="text-lg text-white/50 max-w-xl mb-10 leading-relaxed">
+          Step into the room. Assess real patient cases. Get honest feedback on your instincts, decisions, and fit for a medical career.
+        </p>
+
+        <Link
+          href="/signup"
+          className="bg-[#00c27a] hover:bg-[#00a868] text-white font-semibold px-8 py-4 rounded-xl text-base transition-colors shadow-lg shadow-[#00c27a]/20"
+        >
+          Start Free — No credit card required
+        </Link>
+
+        <p className="text-white/30 text-sm mt-4">Takes 10 minutes. 100% free.</p>
       </main>
+
+      {/* Features */}
+      <section className="px-6 md:px-12 pb-24 max-w-5xl mx-auto w-full">
+        <div className="grid md:grid-cols-3 gap-5">
+          <FeatureCard
+            icon={<Brain size={20} className="text-[#00c27a]" />}
+            title="Real AI Patients"
+            description="Talk to AI-simulated patients with authentic symptoms, vitals, and histories. No multiple choice — free conversation."
+          />
+          <FeatureCard
+            icon={<ClipboardList size={20} className="text-[#00c27a]" />}
+            title="3 Specialties"
+            description="Try Emergency Medicine, Surgery, or General Practice. Each simulation is designed with real clinical cases."
+          />
+          <FeatureCard
+            icon={<Activity size={20} className="text-[#00c27a]" />}
+            title="Honest Feedback"
+            description="Get a scored breakdown of what you did well and where you struggled — no sugarcoating."
+          />
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-white/5 px-6 py-6 text-center text-white/25 text-sm">
+        © {new Date().getFullYear()} BeforeMed. Built for students who take their future seriously.
+      </footer>
+    </div>
+  );
+}
+
+function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+  return (
+    <div className="bg-white/[0.03] border border-white/8 rounded-2xl p-6 hover:border-white/15 transition-colors">
+      <div className="w-9 h-9 rounded-lg bg-[#00c27a]/10 flex items-center justify-center mb-4">
+        {icon}
+      </div>
+      <h3 className="font-semibold text-white mb-2">{title}</h3>
+      <p className="text-sm text-white/45 leading-relaxed">{description}</p>
     </div>
   );
 }
