@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Activity, Zap, Scissors, Stethoscope, LogOut } from 'lucide-react'
+import { Activity, Zap, Scissors, Stethoscope, LogOut, CalendarClock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 
@@ -35,6 +35,17 @@ const specialties = [
     description: 'A patient walks in with vague but concerning symptoms. Your job: listen, assess, and decide next steps.',
     difficulty: 'Diagnostic',
     time: '~10 min',
+  },
+  {
+    id: 'surgeon-day',
+    name: 'A Day in the Life',
+    icon: CalendarClock,
+    color: '#a78bfa',
+    bgColor: 'rgba(167,139,250,0.1)',
+    description: 'Shadow a general surgeon through a full day — ward round, theatre, a critical decision, and a difficult conversation with a family.',
+    difficulty: 'Multi-Stage',
+    time: '~20 min',
+    featured: true,
   },
 ]
 
@@ -84,10 +95,15 @@ export default function DashboardClient({ user }: { user: User }) {
         <div className="grid md:grid-cols-3 gap-5">
           {specialties.map((spec) => {
             const Icon = spec.icon
+            const isFeatured = 'featured' in spec && spec.featured
             return (
               <div
                 key={spec.id}
-                className="bg-white/[0.03] border border-white/8 rounded-2xl p-6 flex flex-col hover:border-white/15 transition-all group"
+                className={`bg-white/[0.03] border rounded-2xl p-6 flex flex-col transition-all group ${
+                  isFeatured
+                    ? 'border-[#a78bfa]/30 hover:border-[#a78bfa]/50 md:col-span-3 md:flex-row md:items-center md:gap-8'
+                    : 'border-white/8 hover:border-white/15'
+                }`}
               >
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center mb-5"
@@ -96,7 +112,14 @@ export default function DashboardClient({ user }: { user: User }) {
                   <Icon size={20} style={{ color: spec.color }} />
                 </div>
 
-                <h2 className="font-semibold text-white text-lg mb-2">{spec.name}</h2>
+                <h2 className="font-semibold text-white text-lg mb-2">
+                  {spec.name}
+                  {'featured' in spec && spec.featured && (
+                    <span className="ml-2 text-xs font-medium px-2 py-0.5 rounded-full bg-[#a78bfa]/15 text-[#a78bfa] border border-[#a78bfa]/20 align-middle">
+                      New
+                    </span>
+                  )}
+                </h2>
                 <p className="text-sm text-white/45 leading-relaxed flex-1 mb-5">{spec.description}</p>
 
                 <div className="flex items-center gap-3 mb-5">
