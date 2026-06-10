@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Activity, Send, AlertTriangle, Heart, Thermometer, Wind, Droplets, CalendarClock } from 'lucide-react'
+import { Activity, Send, AlertTriangle, Heart, Thermometer, Wind, Droplets, CalendarClock, Sparkles, Lock, Check } from 'lucide-react'
 
 const MAX_MESSAGES = 30
 const WARNING_THRESHOLD = 25
@@ -54,6 +54,7 @@ export default function SimulationClient() {
   const [loading, setLoading] = useState(false)
   const [userMessageCount, setUserMessageCount] = useState(0)
   const [ended, setEnded] = useState(false)
+  const [hitLimit, setHitLimit] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -82,10 +83,12 @@ export default function SimulationClient() {
     setLoading(true)
 
     if (newCount >= MAX_MESSAGES) {
+      // Used up all free messages — persist progress and show the upgrade gate.
+      // We do NOT auto-redirect; the student chooses to see results or upgrade.
+      persist(updatedMessages)
       setEnded(true)
+      setHitLimit(true)
       setLoading(false)
-      // Save and redirect
-      saveAndRedirect(updatedMessages)
       return
     }
 
@@ -104,14 +107,18 @@ export default function SimulationClient() {
     setLoading(false)
   }
 
-  function saveAndRedirect(finalMessages: Message[]) {
+  function persist(finalMessages: Message[]) {
     sessionStorage.setItem('sim_messages', JSON.stringify(finalMessages))
     sessionStorage.setItem('sim_specialty', specialty)
+  }
+
+  function goToResults() {
     router.push('/results')
   }
 
   function handleEndEarly() {
-    saveAndRedirect(messages)
+    persist(messages)
+    goToResults()
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -147,7 +154,7 @@ export default function SimulationClient() {
               ? 'text-amber-400 border-amber-400/30 bg-amber-400/10'
               : 'text-white/40 border-white/10 bg-white/5'
           }`}>
-            {remaining} messages left
+            {remaining} / {MAX_MESSAGES} free messages
           </div>
         </div>
       </header>
@@ -214,7 +221,7 @@ export default function SimulationClient() {
               </div>
             )}
 
-            {ended && (
+            {ended && !hitLimit && (
               <div className="text-center py-4">
                 <p className="text-white/40 text-sm">Simulation ended. Generating your results...</p>
               </div>
@@ -337,6 +344,53 @@ export default function SimulationClient() {
           </div>
         </aside>
       </div>
+
+      {/* Upgrade gate — shown when all free messages are used up */}
+      {hitLimit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0a0f1e]/80 backdrop-blur-sm px-4">
+          <div className="w-full max-w-md bg-[#0d1426] border border-white/10 rounded-2xl p-8 text-center shadow-2xl">
+            <div className="w-14 h-14 rounded-2xl bg-[#a78bfa]/15 border border-[#a78bfa]/25 flex items-center justify-center mx-auto mb-5">
+              <Sparkles size={26} className="text-[#a78bfa]" />
+            </div>
+
+            <h2 className="text-xl font-bold text-white mb-2">You&apos;ve used all 30 free messages</h2>
+            <p className="text-sm text-white/45 leading-relaxed mb-6">
+              You&apos;ve reached the limit for this simulation. Upgrade to <span className="text-white/70 font-medium">BeforeMed Pro</span> for unlimited conversations and deeper case practice.
+            </p>
+
+            <div className="text-left bg-white/[0.03] border border-white/8 rounded-xl p-4 mb-6 space-y-2.5">
+              <ProFeature label="Unlimited messages per simulation" />
+              <ProFeature label="Every specialty &amp; multi-stage case" />
+              <ProFeature label="Detailed performance feedback" />
+            </div>
+
+            <button
+              onClick={() => alert('Pro plans are coming soon!')}
+              className="w-full py-3 rounded-xl text-sm font-semibold bg-[#a78bfa] hover:bg-[#9575f0] text-white transition-colors flex items-center justify-center gap-2 mb-3"
+            >
+              <Lock size={15} />
+              Upgrade to Pro
+            </button>
+            <button
+              onClick={goToResults}
+              className="w-full py-2.5 text-sm font-medium text-white/55 hover:text-white/80 transition-colors"
+            >
+              See your results →
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ProFeature({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <div className="w-4 h-4 rounded-full bg-[#a78bfa]/20 flex items-center justify-center shrink-0">
+        <Check size={11} className="text-[#a78bfa]" />
+      </div>
+      <span className="text-xs text-white/55">{label}</span>
     </div>
   )
 }
