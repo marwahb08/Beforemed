@@ -1,24 +1,98 @@
 import { MOCK_SCORES } from '@/lib/mockResponses'
+import { SCORING_PROMPT } from '@/lib/systemPrompts'
+import { claudeEnabled, getAnthropic, extractText, CHAT_MODEL } from '@/lib/anthropic'
+
+type ChatMessage = { role: 'user' | 'assistant'; content: string }
+
+type CriterionResult = { score: number; comment: string }
+type ScoreResult = {
+  score: number
+  careerFit: string
+  summary: string
+  strengths: string[]
+  improvements: string[]
+  criteria: {
+    historyTaking: CriterionResult
+    clinicalReasoning: CriterionResult
+    communication: CriterionResult
+    urgencyRecognition: CriterionResult
+    completeness: CriterionResult
+  }
+}
 
 export async function POST(request: Request) {
   const { messages, specialty } = await request.json()
 
-  const userMessages = messages.filter((m: { role: string }) => m.role === 'user')
-  const count = userMessages.length
+  // --- Real Claude path -----------------------------------------------------
+  if (claudeEnabled()) {
+    try {
+      const completion = await getAnthropic().messages.create({
+        model: CHAT_MODEL,
+        max_tokens: 1500,
+        system: SCORING_PROMPT,
+        messages: [{ role: 'user', content: buildTranscript(messages, specialty) }],
+      })
+      const parsed = parseScore(extractText(completion))
+      if (parsed) return Response.json(parsed)
+      console.error('[score] Could not parse Claude JSON — falling back to mock.')
+    } catch (err) {
+      console.error('[score] Claude API error, falling back to mock:', err)
+    }
+  }
 
-  // Score scales with how many questions were asked, capped at a realistic ceiling
+  // --- Mock path (no key configured, the API failed, or unparseable JSON) ---
+  const userMessages = (messages as ChatMessage[]).filter((m) => m.role === 'user')
+  const count = userMessages.length
   const baseScore = MOCK_SCORES[specialty] ?? MOCK_SCORES.surgery
   const participationBonus = Math.min(count * 2, 20)
   const score = Math.min(baseScore + participationBonus, 94)
 
   const result = buildResult(score, count, specialty)
-
-  await new Promise(r => setTimeout(r, 1200))
-
+  await new Promise((r) => setTimeout(r, 1200))
   return Response.json(result)
 }
 
-function buildResult(score: number, messageCount: number, specialty: string) {
+/** Format the conversation into a transcript the evaluator model can score. */
+function buildTranscript(messages: ChatMessage[], specialty: string): string {
+  const lines = messages
+    .filter((m) => m && typeof m.content === 'string' && m.content.trim().length > 0)
+    .map((m) => `${m.role === 'user' ? 'STUDENT (acting as doctor)' : 'PATIENT / SIMULATION'}: ${m.content.trim()}`)
+
+  return [
+    `Specialty: ${specialty}`,
+    '',
+    'Here is the full simulation transcript to evaluate:',
+    '',
+    lines.join('\n\n'),
+    '',
+    'Score the student now. Respond with ONLY the JSON object described in your instructions.',
+  ].join('\n')
+}
+
+/** Extract and validate the JSON score object from Claude's reply. */
+function parseScore(raw: string): ScoreResult | null {
+  if (!raw) return null
+
+  let text = raw.trim()
+  // Strip a ```json ... ``` fence if the model wrapped the JSON in one.
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/)
+  if (fenced) text = fenced[1].trim()
+
+  // Grab the outermost { ... } in case of any stray prose.
+  const start = text.indexOf('{')
+  const end = text.lastIndexOf('}')
+  if (start === -1 || end === -1 || end < start) return null
+
+  try {
+    const obj = JSON.parse(text.slice(start, end + 1))
+    if (typeof obj?.score !== 'number' || !obj?.criteria) return null
+    return obj as ScoreResult
+  } catch {
+    return null
+  }
+}
+
+function buildResult(score: number, messageCount: number, specialty: string): ScoreResult {
   const careerFit =
     score >= 80 ? 'Excellent Fit' :
     score >= 65 ? 'Strong Fit' :
@@ -29,6 +103,7 @@ function buildResult(score: number, messageCount: number, specialty: string) {
     surgery: `You assessed Khalid's abdominal presentation across ${messageCount} exchanges. Your history-taking showed ${score >= 65 ? 'solid' : 'developing'} instincts for surgical emergencies. The key diagnostic signs — McBurney's point, fever, and the onset pattern — ${score >= 65 ? 'were appropriately explored' : 'needed more thorough coverage'}.`,
     emergency: `You managed Amira's acute respiratory presentation over ${messageCount} messages. Emergency medicine rewards fast, targeted questioning — your approach was ${score >= 65 ? 'appropriately focused' : 'a bit scattered under pressure'}. With more practice, pattern recognition sharpens quickly.`,
     general: `You took David's history across ${messageCount} exchanges. General practice rewards thoroughness and a systematic approach — you showed ${score >= 65 ? 'good breadth' : 'some gaps in the social and systemic history'} that would guide the diagnostic workup.`,
+    'surgeon-day': `You worked through a full surgical day across ${messageCount} exchanges — ward round, theatre checklist, the operation itself, and a difficult conversation with the family. You showed ${score >= 65 ? 'strong' : 'developing'} judgement under the kind of pressure surgeons face every day.`,
   }
 
   const allStrengths = [
