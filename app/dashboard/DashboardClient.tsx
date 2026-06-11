@@ -96,14 +96,61 @@ export default function DashboardClient({ user }: { user: User }) {
           {specialties.map((spec) => {
             const Icon = spec.icon
             const isFeatured = 'featured' in spec && spec.featured
+
+            // Featured card: full-width horizontal banner (icon · text · CTA).
+            if (isFeatured) {
+              return (
+                <div
+                  key={spec.id}
+                  className="md:col-span-3 bg-white/[0.03] border border-[#a78bfa]/30 hover:border-[#a78bfa]/50 rounded-2xl p-6 flex flex-col md:flex-row md:items-center gap-5 md:gap-6 transition-all"
+                >
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ background: spec.bgColor }}
+                  >
+                    <Icon size={22} style={{ color: spec.color }} />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <h2 className="font-semibold text-white text-lg mb-1.5 flex items-center gap-2">
+                      {spec.name}
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[#a78bfa]/15 text-[#a78bfa] border border-[#a78bfa]/20">
+                        New
+                      </span>
+                    </h2>
+                    <p className="text-sm text-white/45 leading-relaxed">{spec.description}</p>
+                  </div>
+
+                  <div className="flex flex-col gap-3 md:w-52 shrink-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs px-2.5 py-1 rounded-full bg-white/5 text-white/40 border border-white/8">
+                        {spec.difficulty}
+                      </span>
+                      <span className="text-xs px-2.5 py-1 rounded-full bg-white/5 text-white/40 border border-white/8">
+                        {spec.time}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => startSimulation(spec.id)}
+                      className="w-full py-2.5 rounded-lg text-sm font-medium transition-all border"
+                      style={{
+                        background: spec.bgColor,
+                        color: spec.color,
+                        borderColor: `${spec.color}30`,
+                      }}
+                    >
+                      Begin Simulation →
+                    </button>
+                  </div>
+                </div>
+              )
+            }
+
+            // Standard card: stacked layout within the grid.
             return (
               <div
                 key={spec.id}
-                className={`bg-white/[0.03] border rounded-2xl p-6 flex flex-col transition-all group ${
-                  isFeatured
-                    ? 'border-[#a78bfa]/30 hover:border-[#a78bfa]/50 md:col-span-3 md:flex-row md:items-center md:gap-8'
-                    : 'border-white/8 hover:border-white/15'
-                }`}
+                className="bg-white/[0.03] border border-white/8 hover:border-white/15 rounded-2xl p-6 flex flex-col transition-all group"
               >
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center mb-5"
@@ -112,14 +159,7 @@ export default function DashboardClient({ user }: { user: User }) {
                   <Icon size={20} style={{ color: spec.color }} />
                 </div>
 
-                <h2 className="font-semibold text-white text-lg mb-2">
-                  {spec.name}
-                  {'featured' in spec && spec.featured && (
-                    <span className="ml-2 text-xs font-medium px-2 py-0.5 rounded-full bg-[#a78bfa]/15 text-[#a78bfa] border border-[#a78bfa]/20 align-middle">
-                      New
-                    </span>
-                  )}
-                </h2>
+                <h2 className="font-semibold text-white text-lg mb-2">{spec.name}</h2>
                 <p className="text-sm text-white/45 leading-relaxed flex-1 mb-5">{spec.description}</p>
 
                 <div className="flex items-center gap-3 mb-5">
