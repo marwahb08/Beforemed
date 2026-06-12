@@ -4,12 +4,21 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Activity, Send, AlertTriangle, Heart, Thermometer, Wind, Droplets, CalendarClock, Sparkles, Lock, Check } from 'lucide-react'
 
-const MAX_MESSAGES = 30
-const WARNING_THRESHOLD = 25
+const MAX_MESSAGES = 20
+const WARNING_THRESHOLD = 15
 
 type Message = {
   role: 'user' | 'assistant'
   content: string
+}
+
+// Suggested choices shown for the very first turn (before the student has said
+// anything). After that, the API returns fresh options with each reply.
+const STARTER_OPTIONS: Record<string, string[]> = {
+  surgery: ['When did the pain start?', 'Can you describe the pain?', 'Where exactly does it hurt?'],
+  emergency: ['When did this start?', 'Have you used your inhaler?', "I'm getting you on oxygen now"],
+  general: ["What's been troubling you?", 'How long have you felt this way?', 'How much weight have you lost?'],
+  'surgeon-day': ['Introduce yourself to Mr. Hassan', 'Start the ward round', "Ask what the wife was worried about"],
 }
 
 const PATIENT_INFO: Record<string, {
@@ -51,6 +60,7 @@ export default function SimulationClient() {
 
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
+  const [options, setOptions] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [userMessageCount, setUserMessageCount] = useState(0)
   const [ended, setEnded] = useState(false)
@@ -60,25 +70,29 @@ export default function SimulationClient() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, loading])
+  }, [messages, loading, options])
 
   useEffect(() => {
-    // Opening message from patient
+    // Opening message from patient + the first set of suggested actions.
     setMessages([{
       role: 'assistant',
       content: getOpeningMessage(specialty),
     }])
+    setOptions(STARTER_OPTIONS[specialty] ?? STARTER_OPTIONS.surgery)
   }, [specialty])
 
-  async function sendMessage() {
-    if (!input.trim() || loading || ended) return
+  // Send a message — either the typed input or a clicked suggested action.
+  async function sendMessage(messageText?: string) {
+    const text = (messageText ?? input).trim()
+    if (!text || loading || ended) return
 
     const newCount = userMessageCount + 1
-    const userMsg: Message = { role: 'user', content: input.trim() }
+    const userMsg: Message = { role: 'user', content: text }
     const updatedMessages = [...messages, userMsg]
 
     setMessages(updatedMessages)
     setInput('')
+    setOptions([]) // hide stale choices while the reply is generating
     setUserMessageCount(newCount)
     setLoading(true)
 
@@ -100,6 +114,7 @@ export default function SimulationClient() {
       })
       const data = await res.json()
       setMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
+      setOptions(Array.isArray(data.options) ? data.options : [])
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: '(Connection error — please try again.)' }])
     }
@@ -233,13 +248,37 @@ export default function SimulationClient() {
           {/* Input */}
           {!ended && (
             <div className="px-4 md:px-6 py-4 border-t border-white/5 shrink-0">
+              {/* Suggested actions — clickable choices. The student can pick one
+                  or ignore them and type their own message below. */}
+              {options.length > 0 && !loading && (
+                <div className="mb-3">
+                  <p className="text-[11px] uppercase tracking-wider text-white/25 mb-2">
+                    {patient.isMultiStage ? 'What do you do?' : 'Suggested next steps'}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {options.map((opt, i) => (
+                      <button
+                        key={i}
+                        onClick={() => sendMessage(opt)}
+                        disabled={loading}
+                        className={`text-left text-sm text-white/75 bg-white/[0.04] border border-white/10 rounded-xl px-3.5 py-2 transition-all disabled:opacity-40 hover:text-white hover:bg-white/[0.07] ${
+                          patient.isMultiStage ? 'hover:border-[#a78bfa]/40' : 'hover:border-[#00c27a]/40'
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-end gap-3">
                 <textarea
                   ref={inputRef}
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={patient.isMultiStage ? 'What do you do...' : 'Talk to the patient...'}
+                  placeholder={patient.isMultiStage ? 'Or type what you do...' : 'Or type your own message...'}
                   rows={1}
                   className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/25 resize-none focus:outline-none focus:border-[#00c27a]/40 transition-colors min-h-[46px] max-h-32"
                   style={{ height: 'auto' }}
@@ -250,7 +289,7 @@ export default function SimulationClient() {
                   }}
                 />
                 <button
-                  onClick={sendMessage}
+                  onClick={() => sendMessage()}
                   disabled={!input.trim() || loading}
                   className="w-11 h-11 rounded-xl bg-[#00c27a] hover:bg-[#00a868] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-colors shrink-0"
                 >
@@ -258,7 +297,7 @@ export default function SimulationClient() {
                 </button>
               </div>
               <div className="flex items-center justify-between mt-2">
-                <p className="text-white/20 text-xs">Enter to send · Shift+Enter for new line</p>
+                <p className="text-white/20 text-xs">Tap an action or type · Enter to send</p>
                 <button
                   onClick={handleEndEarly}
                   className="text-white/25 hover:text-white/50 text-xs transition-colors"
@@ -353,7 +392,7 @@ export default function SimulationClient() {
               <Sparkles size={26} className="text-[#a78bfa]" />
             </div>
 
-            <h2 className="text-xl font-bold text-white mb-2">You&apos;ve used all 30 free messages</h2>
+            <h2 className="text-xl font-bold text-white mb-2">You&apos;ve used all 20 free messages</h2>
             <p className="text-sm text-white/45 leading-relaxed mb-6">
               You&apos;ve reached the limit for this simulation. Upgrade to <span className="text-white/70 font-medium">BeforeMed Pro</span> for unlimited conversations and deeper case practice.
             </p>

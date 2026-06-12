@@ -10,6 +10,39 @@ export const MOCK_SCORES: Record<string, number> = {
   'surgeon-day': 52,
 }
 
+/**
+ * Suggested next-action choices shown beneath the chat in mock mode (no real
+ * Claude key). Each specialty has several rotating sets so the choices change
+ * as the conversation progresses. Real mode gets these from Claude instead.
+ */
+export const MOCK_OPTIONS: Record<string, string[][]> = {
+  surgery: [
+    ['When did the pain start?', 'Can you describe the pain?', 'Does it spread anywhere?'],
+    ['Have you felt feverish?', 'Any nausea or vomiting?', 'When did you last eat?'],
+    ['Any change in your bowel habits?', 'Do you have any allergies?', 'Are you on any medication?'],
+    ['May I examine your abdomen?', 'Any past operations?', "What's worrying you most?"],
+  ],
+  emergency: [
+    ['When did this start?', 'Have you used an inhaler?', 'Can you speak in sentences?'],
+    ["I'm putting you on oxygen now", 'What triggered this today?', 'Do you have asthma?'],
+    ['Any allergies to medicines?', 'Have you been admitted before?', 'Try to slow your breathing'],
+    ['Start a salbutamol nebuliser', 'Check her oxygen levels', 'Call for senior help'],
+  ],
+  general: [
+    ['How long has this been going on?', 'How much weight have you lost?', 'Any night sweats?'],
+    ['Have you noticed any lumps?', 'Any itching or rashes?', 'How is your appetite?'],
+    ['May I examine your neck?', 'Do you smoke or drink?', 'Any family history of cancer?'],
+    ['What medication do you take?', 'Any other symptoms?', 'How are things at work?'],
+  ],
+  'surgeon-day': [
+    ['Introduce yourself to Mr. Hassan', 'Ask how he slept', 'Confirm he fasted since midnight'],
+    ['Check his consent form is signed', 'Ask if he has any questions', 'Explain the operation simply'],
+    ['Confirm the patient identity', 'Check his allergy status', 'Ask about equipment concerns'],
+    ['Call your consultant for advice', 'Proceed carefully with the dissection', 'Convert to open surgery'],
+    ['Reassure Mrs. Hassan gently', 'Explain the biopsy honestly', "Don't give a diagnosis yet"],
+  ],
+}
+
 export const MOCK_RESPONSES: Record<string, MockResponse[]> = {
   surgery: [
     {

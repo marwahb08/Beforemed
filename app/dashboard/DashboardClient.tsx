@@ -191,7 +191,7 @@ export default function DashboardClient({ user }: { user: User }) {
         <div className="mt-10 bg-white/[0.02] border border-white/5 rounded-xl px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
           <Activity size={16} className="text-[#00c27a] shrink-0" />
           <p className="text-sm text-white/35">
-            Every simulation includes <strong className="text-white/60">30 free messages</strong> to assess the patient. Your conversation is scored after submission.
+            Every simulation includes <strong className="text-white/60">20 free messages</strong> to assess the patient. Your conversation is scored after submission.
           </p>
         </div>
       </main>

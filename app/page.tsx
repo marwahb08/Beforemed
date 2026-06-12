@@ -55,7 +55,7 @@ export default function Home() {
           <FeatureCard
             icon={<Brain size={20} className="text-[#00c27a]" />}
             title="Real AI Patients"
-            description="Talk to AI-simulated patients with authentic symptoms, vitals, and histories. No multiple choice — free conversation."
+            description="Talk to AI-simulated patients with authentic symptoms, vitals, and histories. Pick a suggested action — or type your own."
           />
           <FeatureCard
             icon={<ClipboardList size={20} className="text-[#00c27a]" />}

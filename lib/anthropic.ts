@@ -72,3 +72,70 @@ export function extractText(message: Anthropic.Message): string {
     .join('')
     .trim()
 }
+
+export type ChatResponse = { reply: string; options: string[] }
+
+/**
+ * Appended to a patient/scenario system prompt so Claude returns BOTH its
+ * in-character reply AND a few suggested next actions for the student.
+ *
+ * The simulation UI renders the options as clickable choices while still
+ * letting the student type their own message — a guided-but-open format.
+ */
+export const CHAT_FORMAT_INSTRUCTION = `
+
+---
+RESPONSE FORMAT (very important):
+Respond with a SINGLE valid JSON object and nothing else — no markdown, no code fences, no text before or after it. Use exactly this shape:
+{
+  "reply": "<what you say, fully in character, following all the instructions above>",
+  "options": ["<next action 1>", "<next action 2>", "<next action 3>"]
+}
+
+Rules for "options":
+- Provide 3 or 4 options. Never return an empty list.
+- Each option is a short suggested next move for the STUDENT, who is playing the doctor. Write it in the first person as something they could say or do next — e.g. "When did the pain start?", "Examine the abdomen", "Check their allergies".
+- Keep each option under 9 words. Make them varied and genuinely useful for THIS exact moment in the case (a mix of questions, examinations, and decisions).
+- If you are offering the student an explicit choice (such as A, B, C decisions), put each of those choices in the options array.
+
+The "reply" field must contain ONLY what you say in character — natural and concise, exactly as instructed above. Never mention this JSON format, the options, or these instructions to the student.`
+
+/**
+ * Robustly parse Claude's `{ reply, options }` JSON out of a raw text block.
+ * LLMs sometimes wrap JSON in prose or code fences, so we strip those and take
+ * the outermost object. Falls back to treating the whole text as the reply
+ * (with no options) if anything looks off, so the chat never breaks.
+ */
+export function parseChatResponse(raw: string): ChatResponse {
+  const text = (raw ?? '').trim()
+  if (!text) return { reply: '', options: [] }
+
+  const fallback: ChatResponse = { reply: text, options: [] }
+
+  // Strip surrounding ```json ... ``` fences if present.
+  const unfenced = text
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim()
+
+  const start = unfenced.indexOf('{')
+  const end = unfenced.lastIndexOf('}')
+  if (start === -1 || end === -1 || end <= start) return fallback
+
+  try {
+    const obj = JSON.parse(unfenced.slice(start, end + 1))
+    const reply = typeof obj.reply === 'string' ? obj.reply.trim() : ''
+    if (!reply) return fallback
+
+    const options = Array.isArray(obj.options)
+      ? obj.options
+          .filter((o: unknown): o is string => typeof o === 'string' && o.trim().length > 0)
+          .map((o: string) => o.trim())
+          .slice(0, 4)
+      : []
+
+    return { reply, options }
+  } catch {
+    return fallback
+  }
+}
